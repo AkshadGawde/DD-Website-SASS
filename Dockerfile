@@ -16,11 +16,12 @@ COPY . .
 # Build the production-ready bundle using Parcel
 RUN npm run build
 
-# Install xdg-utils and a lightweight browser (chromium)
-RUN apk add --no-cache xdg-utils chromium
-
 # Expose the desired port (change it if necessary)
 EXPOSE 1234
 
+
+RUN apk add --no-cache xdg-utils chromium
+
+
 # Start the application
-CMD ["sh", "-c", "npm start & sleep 5 && xdg-open http://localhost:1234"]
+CMD ["npm", "start"]
