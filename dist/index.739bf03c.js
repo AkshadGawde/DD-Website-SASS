@@ -142,15 +142,16 @@
       this[globalName] = mainExports;
     }
   }
-})({"b3anl":[function(require,module,exports) {
+})({"l9Mez":[function(require,module,exports) {
 var global = arguments[3];
 var HMR_HOST = null;
 var HMR_PORT = null;
 var HMR_SECURE = false;
 var HMR_ENV_HASH = "d6ea1d42532a7575";
+var HMR_USE_SSE = false;
 module.bundle.HMR_BUNDLE_ID = "ba60c367739bf03c";
 "use strict";
-/* global HMR_HOST, HMR_PORT, HMR_ENV_HASH, HMR_SECURE, chrome, browser, __parcel__import__, __parcel__importScripts__, ServiceWorkerGlobalScope */ /*::
+/* global HMR_HOST, HMR_PORT, HMR_ENV_HASH, HMR_SECURE, HMR_USE_SSE, chrome, browser, __parcel__import__, __parcel__importScripts__, ServiceWorkerGlobalScope */ /*::
 import type {
   HMRAsset,
   HMRMessage,
@@ -189,6 +190,7 @@ declare var HMR_HOST: string;
 declare var HMR_PORT: string;
 declare var HMR_ENV_HASH: string;
 declare var HMR_SECURE: boolean;
+declare var HMR_USE_SSE: boolean;
 declare var chrome: ExtensionContext;
 declare var browser: ExtensionContext;
 declare var __parcel__import__: (string) => Promise<void>;
@@ -226,9 +228,14 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== "undefined") {
     var hostname = getHostname();
     var port = getPort();
-    var protocol = HMR_SECURE || location.protocol == "https:" && !/localhost|127.0.0.1|0.0.0.0/.test(hostname) ? "wss" : "ws";
+    var protocol = HMR_SECURE || location.protocol == "https:" && ![
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0"
+    ].includes(hostname) ? "wss" : "ws";
     var ws;
-    try {
+    if (HMR_USE_SSE) ws = new EventSource("/__parcel_hmr");
+    else try {
         ws = new WebSocket(protocol + "://" + hostname + (port ? ":" + port : "") + "/");
     } catch (err) {
         if (err.message) console.error(err.message);
@@ -298,12 +305,14 @@ if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== "undefined") {
             }
         }
     };
-    ws.onerror = function(e) {
-        if (e.message) console.error(e.message);
-    };
-    ws.onclose = function() {
-        console.warn("[parcel] \uD83D\uDEA8 Connection to the HMR server was lost");
-    };
+    if (ws instanceof WebSocket) {
+        ws.onerror = function(e) {
+            if (e.message) console.error(e.message);
+        };
+        ws.onclose = function() {
+            console.warn("[parcel] \uD83D\uDEA8 Connection to the HMR server was lost");
+        };
+    }
 }
 function removeErrorOverlay() {
     var overlay = document.getElementById(OVERLAY_ID);
@@ -1316,10 +1325,10 @@ function _inheritsLoose(subClass, superClass) {
     subClass.__proto__ = superClass;
 }
 /*!
- * GSAP 3.12.4
+ * GSAP 3.12.5
  * https://gsap.com
  *
- * @license Copyright 2008-2023, GreenSock. All rights reserved.
+ * @license Copyright 2008-2024, GreenSock. All rights reserved.
  * Subject to the terms at https://gsap.com/standard-license or for
  * Club GSAP members, the agreement issued with that membership.
  * @author: Jack Doyle, jack@greensock.com
@@ -1923,9 +1932,10 @@ distribute = function distribute(v) {
     animation.progress() < 1 && _callback(animation, "onInterrupt");
     return animation;
 }, _quickTween, _registerPluginQueue = [], _createPlugin = function _createPlugin(config) {
-    if (_windowExists() && config) {
+    if (!config) return;
+    config = !config.name && config["default"] || config; // UMD packaging wraps things oddly, so for example MotionPathHelper becomes {MotionPathHelper:MotionPathHelper, default:MotionPathHelper}.
+    if (_windowExists() || config.headless) {
         // edge case: some build tools may pass in a null/undefined value
-        config = !config.name && config["default"] || config; //UMD packaging wraps things oddly, so for example MotionPathHelper becomes {MotionPathHelper:MotionPathHelper, default:MotionPathHelper}.
         var name = config.name, isFunc = _isFunction(config), Plugin = name && !isFunc && config.init ? function() {
             this._props = [];
         } : config, //in case someone passes in an object that's not a plugin, like CustomEase
@@ -1957,7 +1967,7 @@ distribute = function distribute(v) {
         }
         _addGlobal(name, Plugin);
         config.register && config.register(gsap, Plugin, PropTween);
-    } else config && _registerPluginQueue.push(config);
+    } else _registerPluginQueue.push(config);
 }, /*
  * --------------------------------------------------------------------------------------
  * COLORS
@@ -2192,7 +2202,7 @@ _hue = function _hue(h, m1, m2) {
  */ _tickerActive, _ticker = function() {
     var _getTime = Date.now, _lagThreshold = 500, _adjustedLag = 33, _startTime = _getTime(), _lastUpdate = _startTime, _gap = 1000 / 240, _nextTime = _gap, _listeners = [], _id, _req, _raf, _self, _delta, _i, _tick = function _tick(v) {
         var elapsed = _getTime() - _lastUpdate, manual = v === true, overlap, dispatch, time, frame;
-        elapsed > _lagThreshold && (_startTime += elapsed - _adjustedLag);
+        (elapsed > _lagThreshold || elapsed < 0) && (_startTime += elapsed - _adjustedLag);
         _lastUpdate += elapsed;
         time = _lastUpdate - _startTime;
         overlap = time - _nextTime;
@@ -2224,9 +2234,9 @@ _hue = function _hue(h, m1, m2) {
                     _globals.gsap = gsap;
                     (_win.gsapVersions || (_win.gsapVersions = [])).push(gsap.version);
                     _install(_installScope || _win.GreenSockGlobals || !_win.gsap && _win || {});
-                    _raf = _win.requestAnimationFrame;
                     _registerPluginQueue.forEach(_createPlugin);
                 }
+                _raf = typeof requestAnimationFrame !== "undefined" && requestAnimationFrame;
                 _id && _self.sleep();
                 _req = _raf || function(f) {
                     return setTimeout(f, _nextTime - _self.time * 1000 + 1 | 0);
@@ -2236,7 +2246,7 @@ _hue = function _hue(h, m1, m2) {
             }
         },
         sleep: function sleep() {
-            (_raf ? _win.cancelAnimationFrame : clearTimeout)(_id);
+            (_raf ? cancelAnimationFrame : clearTimeout)(_id);
             _tickerActive = 0;
             _req = _emptyFunc;
         },
@@ -3520,8 +3530,8 @@ var Tween = /*#__PURE__*/ function(_Animation2) {
                 }
                 if (iteration !== prevIteration) {
                     timeline && this._yEase && _propagateYoyoEase(timeline, isYoyo); //repeatRefresh functionality
-                    if (this.vars.repeatRefresh && !isYoyo && !this._lock && this._time !== dur && this._initted) {
-                        // this._time will === dur when we render at EXACTLY the end of an iteration. Without this condition, it'd often do the repeatRefresh render TWICE (again on the very next tick).
+                    if (this.vars.repeatRefresh && !isYoyo && !this._lock && this._time !== cycleDuration && this._initted) {
+                        // this._time will === cycleDuration when we render at EXACTLY the end of an iteration. Without this condition, it'd often do the repeatRefresh render TWICE (again on the very next tick).
                         this._lock = force = 1; //force, otherwise if lazy is true, the _attemptInitTween() will return and we'll jump out and get caught bouncing on each tick.
                         this.render(_roundPrecise(cycleDuration * iteration), true).invalidate()._lock = 0;
                     }
@@ -3555,7 +3565,7 @@ var Tween = /*#__PURE__*/ function(_Animation2) {
                 pt.r(ratio, pt.d);
                 pt = pt._next;
             }
-            timeline && timeline.render(totalTime < 0 ? totalTime : !time && isYoyo ? -_tinyNum : timeline._dur * timeline._ease(time / this._dur), suppressEvents, force) || this._startAt && (this._zTime = totalTime);
+            timeline && timeline.render(totalTime < 0 ? totalTime : timeline._dur * timeline._ease(time / this._dur), suppressEvents, force) || this._startAt && (this._zTime = totalTime);
             if (this._onUpdate && !suppressEvents) {
                 isNegative && _rewindStartAt(this, totalTime, suppressEvents, force); //note: for performance reasons, we tuck this conditional logic inside less traveled areas (most tweens don't have an onUpdate). We'd just have it at the end before the onComplete, but the values should be updated before any onUpdate is called, so we ALSO put it here and then if it's not called, we do so later near the onComplete.
                 _callback(this, "onUpdate");
@@ -3961,6 +3971,7 @@ var MatchMedia = /*#__PURE__*/ function() {
     function MatchMedia(scope) {
         this.contexts = [];
         this.scope = scope;
+        _context && _context.data.push(this);
     }
     var _proto6 = MatchMedia.prototype;
     _proto6.add = function add(conditions, func, scope) {
@@ -4250,17 +4261,17 @@ var gsap = _gsap.registerPlugin({
         while(i--)this.add(target, i, target[i] || 0, value[i], 0, 0, 0, 0, 0, 1);
     }
 }, _buildModifierPlugin("roundProps", _roundModifier), _buildModifierPlugin("modifiers"), _buildModifierPlugin("snap", snap)) || _gsap; //to prevent the core plugins from being dropped via aggressive tree shaking, we must include them in the variable declaration in this way.
-Tween.version = Timeline.version = gsap.version = "3.12.4";
+Tween.version = Timeline.version = gsap.version = "3.12.5";
 _coreReady = 1;
 _windowExists() && _wake();
 var Power0 = _easeMap.Power0, Power1 = _easeMap.Power1, Power2 = _easeMap.Power2, Power3 = _easeMap.Power3, Power4 = _easeMap.Power4, Linear = _easeMap.Linear, Quad = _easeMap.Quad, Cubic = _easeMap.Cubic, Quart = _easeMap.Quart, Quint = _easeMap.Quint, Strong = _easeMap.Strong, Elastic = _easeMap.Elastic, Back = _easeMap.Back, SteppedEase = _easeMap.SteppedEase, Bounce = _easeMap.Bounce, Sine = _easeMap.Sine, Expo = _easeMap.Expo, Circ = _easeMap.Circ;
 
 },{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"l02JQ":[function(require,module,exports) {
 /*!
- * CSSPlugin 3.12.4
+ * CSSPlugin 3.12.5
  * https://gsap.com
  *
- * Copyright 2008-2023, GreenSock. All rights reserved.
+ * Copyright 2008-2024, GreenSock. All rights reserved.
  * Subject to the terms at https://gsap.com/standard-license or for
  * Club GSAP members, the agreement issued with that membership.
  * @author: Jack Doyle, jack@greensock.com
@@ -6233,6 +6244,6 @@ class ImgReveal {
     }
 }
 
-},{"split-type":"fvGAG","./utils":"72Dku","gsap":"fPSuC","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["b3anl","ebWYT"], "ebWYT", "parcelRequire364b")
+},{"split-type":"fvGAG","./utils":"72Dku","gsap":"fPSuC","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["l9Mez","ebWYT"], "ebWYT", "parcelRequire364b")
 
 //# sourceMappingURL=index.739bf03c.js.map
